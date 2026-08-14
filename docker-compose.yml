@@ -1,0 +1,17 @@
+services:
+  solr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SOLR_VERSION: 10.0.0
+    image: solr-source:10.0.0-trixie
+    ports:
+     - "8983:8983"
+    volumes:
+      - ./data:/var/solr
+    command:
+      - solr-precreate
+      - gettingstarted
+volumes:
+  data:

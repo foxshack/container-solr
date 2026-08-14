@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -euo pipefail
+
+mkdir -p "$SOLR_HOME" "$SOLR_LOGS_DIR"
+
+if [[ ! -f /var/solr/log4j2.xml ]]; then
+  cp /opt/solr/server/resources/log4j2.xml /var/solr/log4j2.xml
+fi
+
+exec solr start -f -p "${SOLR_PORT:-8983}" -s "$SOLR_HOME" -h "${SOLR_HOST:-0.0.0.0}"
