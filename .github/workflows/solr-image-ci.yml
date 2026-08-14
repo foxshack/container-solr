@@ -9,7 +9,7 @@ on:
       - 'docker/**'
   push:
     branches:
-      - main
+      - 9.x
     paths:
       - '.github/workflows/solr-image-ci.yml'
       - 'Dockerfile'
