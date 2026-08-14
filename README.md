@@ -13,6 +13,11 @@ This repository now includes a multi-stage Dockerfile that downloads the Apache
 Solr binary distribution on top of Debian Trixie and produces a runtime image
 that keeps the same `/var/solr` volume layout used by the official image.
 
+To stay drop-in compatible with projects currently using `solr:9.8`, the image
+uses the upstream Docker helper scripts from the Solr distribution itself (the
+same script family used by the official image), including commands like
+`solr-precreate`.
+
 The compose service builds that image locally and keeps the existing
 `solr-precreate gettingstarted` startup command.
 
@@ -28,11 +33,15 @@ To start it:
 docker compose up --build
 ```
 
-The default build arguments are `SOLR_VERSION=10.0.0`,
-`SOLR_PACKAGE=slim`, `BUILDER_BASE_IMAGE=debian:trixie`, and
-`RUNTIME_BASE_IMAGE=debian:trixie`. Change those in `docker-compose.yml` when
-you need a different Solr release, want the full instead of slim distribution,
-or want to rebuild on a newer patched base image.
+This 9.x branch is pinned to Solr `9.8.1` and uses Java 21 by default on
+Debian Trixie (the Java version available in that base image).
+
+The default build arguments are `SOLR_VERSION=9.8.1`,
+`SOLR_PACKAGE=slim`, `JAVA_RUNTIME_PACKAGE=openjdk-21-jre-headless`,
+`BUILDER_BASE_IMAGE=debian:trixie`, and `RUNTIME_BASE_IMAGE=debian:trixie`.
+Change those in `docker-compose.yml` when you need a different 9.x Solr
+release, want the full instead of slim distribution, or want to rebuild on a
+newer patched base image.
 
 ## CI
 

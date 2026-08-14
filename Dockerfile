@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
 ARG BUILDER_BASE_IMAGE=debian:trixie
+ARG JAVA_RUNTIME_PACKAGE=openjdk-21-jre-headless
 ARG RUNTIME_BASE_IMAGE=debian:trixie
 ARG SOLR_PACKAGE=slim
-ARG SOLR_VERSION=10.0.0
+ARG SOLR_VERSION=9.8.1
 
 FROM ${BUILDER_BASE_IMAGE} AS downloader
 
@@ -33,10 +34,12 @@ RUN case "${SOLR_PACKAGE}" in \
 
 FROM ${RUNTIME_BASE_IMAGE}
 
+ARG JAVA_RUNTIME_PACKAGE
 ARG SOLR_PACKAGE
 ARG SOLR_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/opt/solr/bin:/opt/docker-solr/scripts:${PATH}"
+ENV JAVA_RUNTIME_PACKAGE=${JAVA_RUNTIME_PACKAGE}
 ENV SOLR_INCLUDE=/etc/default/solr.in.sh
 ENV SOLR_HOME=/var/solr/data
 ENV SOLR_LOGS_DIR=/var/solr/logs
@@ -49,7 +52,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     ca-certificates \
     lsof \
-    openjdk-21-jre-headless \
+   ${JAVA_RUNTIME_PACKAGE} \
     procps \
     tini \
  && rm -rf /var/lib/apt/lists/* \
@@ -58,9 +61,10 @@ RUN apt-get update \
 
 COPY --from=downloader /opt/solr/ /opt/solr/
 COPY docker/solr.in.sh /etc/default/solr.in.sh
-COPY docker/scripts/ /opt/docker-solr/scripts/
 
-RUN mkdir -p /docker-entrypoint-initdb.d /var/solr/data /var/solr/logs \
+RUN test -d /opt/solr/docker/scripts \
+ && mkdir -p /docker-entrypoint-initdb.d /opt/docker-solr/scripts /var/solr/data /var/solr/logs \
+ && cp -a /opt/solr/docker/scripts/. /opt/docker-solr/scripts/ \
  && chmod +x /opt/docker-solr/scripts/* \
  && chown -R solr:solr /docker-entrypoint-initdb.d /etc/default/solr.in.sh /opt/docker-solr /opt/solr /var/solr
 

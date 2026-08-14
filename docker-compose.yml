@@ -5,10 +5,11 @@ services:
       dockerfile: Dockerfile
       args:
         BUILDER_BASE_IMAGE: debian:trixie
+        JAVA_RUNTIME_PACKAGE: openjdk-21-jre-headless
         RUNTIME_BASE_IMAGE: debian:trixie
         SOLR_PACKAGE: slim
-        SOLR_VERSION: 10.0.0
-    image: solr-binary:10.0.0-slim-trixie
+        SOLR_VERSION: 9.8.1
+    image: solr-binary:9.8.1-slim-trixie
     ports:
      - "8983:8983"
     volumes:
