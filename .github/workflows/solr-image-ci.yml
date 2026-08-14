@@ -1,0 +1,67 @@
+name: solr-image-ci
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/solr-image-ci.yml'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'docker/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/solr-image-ci.yml'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'docker/**'
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: solr-binary-ci
+  SOLR_PACKAGE: slim
+  SOLR_VERSION: 10.0.0
+  BUILDER_BASE_IMAGE: debian:trixie
+  RUNTIME_BASE_IMAGE: debian:trixie
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Solr image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            SOLR_PACKAGE=${{ env.SOLR_PACKAGE }}
+            SOLR_VERSION=${{ env.SOLR_VERSION }}
+            BUILDER_BASE_IMAGE=${{ env.BUILDER_BASE_IMAGE }}
+            RUNTIME_BASE_IMAGE=${{ env.RUNTIME_BASE_IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library

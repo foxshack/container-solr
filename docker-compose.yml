@@ -4,8 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        BUILDER_BASE_IMAGE: debian:trixie
+        RUNTIME_BASE_IMAGE: debian:trixie
+        SOLR_PACKAGE: slim
         SOLR_VERSION: 10.0.0
-    image: solr-source:10.0.0-trixie
+    image: solr-binary:10.0.0-slim-trixie
     ports:
      - "8983:8983"
     volumes:
