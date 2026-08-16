@@ -13,9 +13,7 @@ services:
     ports:
      - "8983:8983"
     volumes:
-      - ./data:/var/solr
-    command:
-      - solr-precreate
-      - gettingstarted
+      - solr_data:/var/solr/data
+      - ./configsets:/opt/solr/server/solr/configsets
 volumes:
-  data:
+  solr_data:

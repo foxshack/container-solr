@@ -61,14 +61,16 @@ RUN apt-get update \
 
 COPY --from=downloader /opt/solr/ /opt/solr/
 COPY docker/solr.in.sh /etc/default/solr.in.sh
+COPY docker/scripts/ /opt/docker-solr/scripts/
+COPY docker/initdb.d/ /docker-entrypoint-initdb.d/
+COPY docker/solr.xml /opt/solr-config/solr.xml
+COPY docker/log4j2.xml /var/solr/log4j2.xml
 
-RUN test -d /opt/solr/docker/scripts \
- && mkdir -p /docker-entrypoint-initdb.d /opt/docker-solr/scripts /var/solr/data /var/solr/logs \
- && cp -a /opt/solr/docker/scripts/. /opt/docker-solr/scripts/ \
- && chmod +x /opt/docker-solr/scripts/* \
- && chown -R solr:solr /docker-entrypoint-initdb.d /etc/default/solr.in.sh /opt/docker-solr /opt/solr /var/solr
+RUN mkdir -p /docker-entrypoint-initdb.d /var/solr/data /var/solr/logs /opt/solr/server/solr/configsets \
+ && chmod +x /opt/docker-solr/scripts/* /docker-entrypoint-initdb.d/* \
+ && chown -R solr:solr /docker-entrypoint-initdb.d /etc/default/solr.in.sh /opt/docker-solr /opt/solr /opt/solr-config /opt/solr/server/solr/configsets /var/solr
 
-VOLUME ["/var/solr"]
+VOLUME ["/var/solr/data"]
 WORKDIR /opt/solr
 EXPOSE 8983
 
