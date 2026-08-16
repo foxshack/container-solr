@@ -19,7 +19,53 @@ docker compose up -d --build
 Then visit http://localhost:8983 to access the Solr admin UI. To create cores,
 see the "Cores and configsets" section below.
 
-## Cores and configsets
+## Container Setup & Key Configuration
+
+### Entry Point
+
+The container uses a custom entry point script (`docker/scripts/docker-entrypoint.sh`)
+that:
+1. Sources the Solr environment configuration (`/etc/default/solr.in.sh`)
+2. Runs initialization scripts from `/docker-entrypoint-initdb.d/` (e.g., core creation)
+3. Starts Solr in foreground mode with proper Jetty host binding
+
+### Network & Port Binding
+
+**Critical:** Solr must bind to `0.0.0.0` (all interfaces) inside the container for
+Docker port mapping to work correctly. This is configured via the JVM system property:
+
+```
+-Dsolr.jetty.host=0.0.0.0
+```
+
+This is set in the entry point script and allows external access to the container's
+port 8983. Without this setting, Solr would bind to `127.0.0.1` (loopback only),
+making it unreachable from the host machine.
+
+### Global Configuration
+
+Global Solr configuration files are baked into the image at build time and seeded
+into the Docker volume on first start:
+
+- **`docker/solr.xml`** — Root configuration, includes SolrCloud mode settings
+  - Note: The `<solrcloud>` section requires `hostContext` for proper initialization
+- **`docker/log4j2.xml`** — Logging configuration
+- **`docker/solr.in.sh`** — Solr shell environment variables (JVM settings, paths)
+
+To modify global config, edit these files and rebuild:
+
+```sh
+docker compose up -d --build
+```
+
+### Volumes
+
+- **`solr_data`** (Docker-managed named volume) — Persists runtime data (indexes,
+  transaction logs, core metadata) across container recreations
+- **`./configsets/mnt`** (host mount) — Mounted at `/opt/solr/server/solr/configsets`
+  for live configset management (no rebuild needed on config changes)
+
+
 
 Each core's configuration template lives under `configsets/<core-name>/conf/`
 (e.g. `configsets/gettingstarted/conf/` and `configsets/mhv/conf/`). The
@@ -124,6 +170,84 @@ docker compose up -d --build
 
 This removes the named volume, so it's recreated on startup (only `solr.xml` is
 seeded; cores must be created manually).
+
+## Troubleshooting
+
+### Connection refused on localhost:8983
+
+**Cause:** Solr is binding to `127.0.0.1` instead of `0.0.0.0` inside the container.
+
+**Solution:** Ensure the entry point script sets `-Dsolr.jetty.host=0.0.0.0`. Check:
+```sh
+docker compose logs solr | grep "Started.*Connector"
+```
+
+Should show: `Started ServerConnector@...{0.0.0.0:8983}` (not `127.0.0.1:8983`)
+
+### Container exits immediately
+
+Check the logs for error messages:
+```sh
+docker compose logs solr
+```
+
+Common issues:
+- Missing `hostContext` in `docker/solr.xml` → Solr fails to initialize
+- Entry point script not found or not executable → Container cannot start
+- Java/JVM issues → Check Java version compatibility
+
+### Configuration changes not applied
+
+**For configsets** (live mounts): Changes should be picked up immediately. Reload
+the core via the web UI if needed.
+
+**For global config** (baked into image): Rebuild the container:
+```sh
+docker compose up -d --build
+```
+
+### Check container health
+
+```sh
+# See if container is running
+docker compose ps
+
+# View all logs
+docker compose logs solr
+
+# Check last 20 lines
+docker compose logs solr --tail=20
+
+# Follow logs in real-time
+docker compose logs -f solr
+```
+
+## Running Commands in the Container
+
+Execute commands inside the running Solr container:
+
+```sh
+# Run Solr CLI commands
+docker compose exec solr solr status
+docker compose exec solr solr create -c <core-name> -d <configset-name>
+
+# Access the bash shell
+docker compose exec solr bash
+
+# Check Solr version
+docker compose exec solr solr --version
+```
+
+## Runtime Settings & Environment Variables
+
+Key environment variables set in the container:
+
+- `SOLR_HOME=/var/solr/data` — Solr data directory (contains cores, configs, indexes)
+- `SOLR_LOGS_DIR=/var/solr/logs` — Log file directory
+- `SOLR_PID_DIR=/var/solr` — Process ID directory
+- `SOLR_PORT=8983` — HTTP port
+- `SOLR_INCLUDE=/etc/default/solr.in.sh` — Shell environment file
+- `SOLR_OPTS` — Additional JVM options (includes `-Dsolr.jetty.host=0.0.0.0`)
 
 ## CI
 

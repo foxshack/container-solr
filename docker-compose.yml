@@ -14,6 +14,6 @@ services:
      - "8983:8983"
     volumes:
       - solr_data:/var/solr/data
-      - ./configsets:/opt/solr/server/solr/configsets
+      - ./configsets/mnt:/opt/solr/server/solr/configsets/mnt
 volumes:
   solr_data:
